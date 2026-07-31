@@ -6,12 +6,9 @@
 
 Home Assistant integration and Lovelace card for [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) — a Reticulum mesh gateway combining LoRa radio, LXMF messaging, MQTT bridge, I2P and Nomadnet.
 
-<<<<<<< HEAD
 <p align="left">
   <img src="https://github.com/e2ret/NOEMA-RNSGate-HA/blob/main/docs/card.png" width="300" alt="NOEMA RNSGate HA">
 </p>
-=======
-![Card Preview](docs/card.png)
 
 ---
 
