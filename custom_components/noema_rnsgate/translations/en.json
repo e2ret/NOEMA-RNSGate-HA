@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NOEMA RNSGate",
+        "description": "Connect to your NOEMA RNSGate Lite gateway",
+        "data": {
+          "host": "IP Address",
+          "port": "Port",
+          "name": "Device name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to NOEMA RNSGate. Check IP address and port."
+    },
+    "abort": {
+      "already_configured": "Device already configured"
+    }
+  }
+}

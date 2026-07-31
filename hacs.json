@@ -1,0 +1,9 @@
+{
+  "name": "NOEMA RNSGate",
+  "content_in_root": false,
+  "render_readme": true,
+  "filename": "noema-rnsgate-card.js",
+  "country": [],
+  "homeassistant": "2024.1.0",
+  "zip_release": false
+}
