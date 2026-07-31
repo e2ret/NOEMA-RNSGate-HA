@@ -140,14 +140,6 @@ The `prefix` is the common part of your entity IDs. If your entities are named `
 
 ---
 
-## Related Projects
-
-- NOEMA RNSGate Lite — Gateway firmware
-- [NOEMA RNSGate](https://github.com/e2ret/NOEMA-RNSGate) — Full version with LXMF Chat
-- [noema-power-card](https://github.com/e2ret/noema-power-card) — EcoFlow Lovelace card
-
----
-
 ## License
 
 MIT
