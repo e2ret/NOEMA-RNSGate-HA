@@ -36,7 +36,7 @@ Home Assistant integration and Lovelace card for NOEMA RNSGate Lite — a Reticu
 
 ## Requirements
 
-- [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) running on your network
+- NOEMA RNSGate Lite running on your network
 - Home Assistant 2024.1+
 - HACS (for easy installation)
 
