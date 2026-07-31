@@ -6,14 +6,12 @@
 
 Home Assistant integration and Lovelace card for [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) — a Reticulum mesh gateway combining LoRa radio, LXMF messaging, MQTT bridge, I2P and Nomadnet.
 
-![Card Preview](docs/card.png)
-
 ---
 
 ## Features
 
 **Integration (`noema_rnsgate`):**
-- System metrics — CPU, RAM, Disk, Temperature
+- System metrics — CPU, RAM, Disk, Temperature, IP, Uptime
 - Service status — rnsd, lxmf_bridge_mqtt, i2pd, nomadnet, rbrowser
 - MQTT broker connectivity
 - LXMF statistics — sent, received, total
@@ -25,9 +23,9 @@ Home Assistant integration and Lovelace card for [NOEMA RNSGate Lite](https://gi
 - Auto-discovers all entities by integration prefix
 - Gauges for CPU, RAM, Disk, Temperature
 - Service status indicators with restart buttons
-- LXMF bridge info
+- LXMF bridge info and statistics
 - MQTT status
-- RNS version footer
+- RNS version footer with update indicator
 - No manual entity configuration needed
 
 ---
@@ -40,21 +38,25 @@ Home Assistant integration and Lovelace card for [NOEMA RNSGate Lite](https://gi
 
 ---
 
-## Installation
+## Installation via HACS
 
-### Via HACS (recommended)
+### Integration
 
-1. Open HACS → **Integrations** → ⋮ → **Custom repositories**
+1. HACS → **Integrations** → ⋮ → **Custom repositories**
 2. Add `https://github.com/e2ret/NOEMA-RNSGate-HA` → Category: **Integration**
 3. Find **NOEMA RNSGate** → Install
 4. Restart Home Assistant
+5. **Settings → Integrations → Add → NOEMA RNSGate**
 
-For the Lovelace card:
+### Lovelace Card
+
 1. HACS → **Frontend** → ⋮ → **Custom repositories**
 2. Add `https://github.com/e2ret/NOEMA-RNSGate-HA` → Category: **Lovelace**
 3. Find **NOEMA RNSGate Card** → Install
 
-### Manual
+---
+
+## Manual Installation
 
 ```bash
 # Integration
@@ -72,7 +74,7 @@ Add resource in HA: **Settings → Dashboards → Resources → Add**
 
 ## Configuration
 
-After installation: **Settings → Integrations → Add → NOEMA RNSGate**
+**Settings → Integrations → Add → NOEMA RNSGate**
 
 | Field | Description | Default |
 |-------|-------------|---------|
@@ -95,7 +97,7 @@ prefix: noema_rnsgate_noema
 | `title` | Card title | NOEMA RNSGate Lite |
 | `prefix` | Entity ID prefix | noema_rnsgate_noema |
 
-The `prefix` is the common part of your entity IDs. If your entities are `sensor.noema_rnsgate_noema_cpu_usage`, the prefix is `noema_rnsgate_noema`.
+The `prefix` is the common part of your entity IDs. If your entities are named `sensor.noema_rnsgate_noema_cpu_usage`, the prefix is `noema_rnsgate_noema`.
 
 ---
 
@@ -109,11 +111,12 @@ The `prefix` is the common part of your entity IDs. If your entities are `sensor
 | `sensor.*_disk_usage` | Disk usage % |
 | `sensor.*_cpu_temperature` | CPU temperature °C |
 | `sensor.*_uptime` | System uptime |
-| `sensor.*_ip_address` | Gateway IP |
+| `sensor.*_ip_address` | Gateway IP address |
 | `sensor.*_rns_version` | Installed RNS version |
 | `sensor.*_rns_latest` | Latest RNS version on PyPI |
 | `sensor.*_lxmf_sent` | LXMF messages sent |
 | `sensor.*_lxmf_received` | LXMF messages received |
+| `sensor.*_lxmf_total` | LXMF messages total |
 | `sensor.*_lxmf_bridge_address` | LXMF Bridge address |
 | `sensor.*_i2p_address` | I2P b32 address |
 | `sensor.*_nomadnet_address` | Nomadnet node address |
@@ -144,7 +147,8 @@ The `prefix` is the common part of your entity IDs. If your entities are `sensor
 
 ## Related Projects
 
-- [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) — The gateway firmware
+- [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) — Gateway firmware
+- [NOEMA RNSGate](https://github.com/e2ret/NOEMA-RNSGate) — Full version with LXMF Chat
 - [noema-power-card](https://github.com/e2ret/noema-power-card) — EcoFlow Lovelace card
 
 ---
