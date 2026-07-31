@@ -394,6 +394,8 @@ class NoemaRnsgateCard extends HTMLElement {
     this.querySelectorAll(".nrg-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const svc = btn.dataset.svc;
+        const label = svc === "all" ? "ALL services" : svc;
+        if (!confirm(`Restart ${label}?`)) return;
         if (svc === "all") {
           this._hass.callService("button", "press", {
             entity_id: `button.${this._config.prefix}_restart_all`
