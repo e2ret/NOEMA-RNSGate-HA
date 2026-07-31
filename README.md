@@ -4,7 +4,7 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-teal)
 ![HA](https://img.shields.io/badge/HA-2024.1+-blue)
 
-Home Assistant integration and Lovelace card for [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) — a Reticulum mesh gateway combining LoRa radio, LXMF messaging, MQTT bridge, I2P and Nomadnet.
+Home Assistant integration and Lovelace card for NOEMA RNSGate Lite — a Reticulum mesh gateway combining LoRa radio, LXMF messaging, MQTT bridge, I2P and Nomadnet.
 
 <p align="left">
   <img src="https://github.com/e2ret/NOEMA-RNSGate-HA/blob/main/docs/card.png" width="300" alt="NOEMA RNSGate HA">
@@ -37,7 +37,7 @@ Home Assistant integration and Lovelace card for [NOEMA RNSGate Lite](https://gi
 
 ## Requirements
 
-- [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) running on your network
+- NOEMA RNSGate Lite running on your network
 - Home Assistant 2024.1+
 - HACS (for integration installation)
 
@@ -137,14 +137,6 @@ The `prefix` is the common part of your entity IDs. If your entities are named `
 | `button.*_restart_rbrowser` | Restart rBrowser |
 | `button.*_restart_dashboard` | Restart dashboard |
 | `button.*_restart_all` | Restart all services |
-
----
-
-## Related Projects
-
-- [NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite) — Gateway firmware
-- [NOEMA RNSGate](https://github.com/e2ret/NOEMA-RNSGate) — Full version with LXMF Chat
-- [noema-power-card](https://github.com/e2ret/noema-power-card) — EcoFlow Lovelace card
 
 ---
 
