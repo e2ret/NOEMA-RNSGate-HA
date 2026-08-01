@@ -2,8 +2,9 @@
  * NOEMA RNSGate Card — v1.0.0
  * Standalone Lovelace card for NOEMA RNSGate Lite integration.
  * No dependencies. Auto-discovers entities by integration prefix.
- * ============================================================ 
- */
+ *
+ * https://github.com/e2ret/NOEMA-RNSGate-Lite
+ * ============================================================ */
 
 const NRG_VERSION = "1.0.0";
 
@@ -210,6 +211,7 @@ class NoemaRnsgateCard extends HTMLElement {
             border-radius: 10px;
             overflow: hidden;
             cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.15);
           }
           .nrg-svc-name {
             font-size: 13px;
