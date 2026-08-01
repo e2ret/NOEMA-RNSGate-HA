@@ -484,10 +484,10 @@ class NoemaRnsgateCard extends HTMLElement {
         st.textContent = "—";
       } else if (on) {
         st.className = "nrg-svc-status on";
-        st.textContent = "Работает";
+        st.textContent = "Running";
       } else {
         st.className = "nrg-svc-status off";
-        st.textContent = "Остановлен";
+        st.textContent = "Stopped";
       }
     });
 
