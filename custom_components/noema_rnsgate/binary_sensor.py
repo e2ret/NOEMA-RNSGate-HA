@@ -22,14 +22,14 @@ async def async_setup_entry(
 
     # MQTT status
     entities.append(NOEMABinarySensor(
-        coordinator, entry, "mqtt", "MQTT Broker",
+        coordinator, entry, "mqtt_broker", "MQTT Broker",
         "mdi:server-network", BinarySensorDeviceClass.CONNECTIVITY,
         lambda d: d.get("mqtt", {}).get("status") == "ok"
     ))
 
     # RNS update available
     entities.append(NOEMABinarySensor(
-        coordinator, entry, "rns_update", "RNS Update Available",
+        coordinator, entry, "rns_update_available", "RNS Update Available",
         "mdi:update", None,
         lambda d: d.get("rns", {}).get("update_available", False)
     ))

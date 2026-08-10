@@ -7,7 +7,7 @@ DEFAULT_PORT = 8081
 
 SERVICES_LIST = [
     "rnsd",
-    "lxmf_bridge_mqtt",
+    "noema_lxmf_bridge",
     "i2pd",
     "nomadnet",
     "rbrowser",
@@ -15,7 +15,7 @@ SERVICES_LIST = [
 
 SERVICES_LIST_BUTTONS = [
     "rnsd",
-    "lxmf_bridge_mqtt",
+    "noema_lxmf_bridge",
     "i2pd",
     "nomadnet",
     "rbrowser",

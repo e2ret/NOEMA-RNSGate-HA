@@ -1,13 +1,12 @@
 {
   "domain": "noema_rnsgate",
   "name": "NOEMA RNSGate",
-  "version": "1.0.0",
-  "documentation": "https://github.com/e2ret/NOEMA-RNSGate-HA",
-  "issue_tracker": "https://github.com/e2ret/NOEMA-RNSGate-HA/issues",
+  "version": "1.1.0",
+  "documentation": "https://github.com/e2ret/NOEMA-RNSGate-Lite",
+  "issue_tracker": "https://github.com/e2ret/NOEMA-RNSGate-Lite/issues",
   "dependencies": [],
   "codeowners": ["@e2ret"],
   "requirements": [],
   "iot_class": "local_polling",
-  "config_flow": true,
-  "icon": "mdi:router-wireless"
+  "config_flow": true
 }
