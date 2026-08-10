@@ -16,7 +16,7 @@ console.info(
 
 const NRG_SERVICES = [
   { key: "rnsd",             label: "rnsd" },
-  { key: "lxmf_bridge_mqtt", label: "LXMF Bridge" },
+  { key: "noema_lxmf_bridge", label: "LXMF Bridge" },
   { key: "i2pd",             label: "i2pd" },
   { key: "nomadnet",         label: "Nomadnet" },
   { key: "rbrowser",         label: "rBrowser" },
