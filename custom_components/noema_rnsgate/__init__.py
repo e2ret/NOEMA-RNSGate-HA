@@ -82,11 +82,6 @@ class NOEMADataUpdateCoordinator(DataUpdateCoordinator):
                         if resp.status == 200:
                             data["mqtt"] = await resp.json()
 
-                    # RNS version check
-                    async with session.get(f"{self.base_url}/api/rns_update_check") as resp:
-                        if resp.status == 200:
-                            data["rns"] = await resp.json()
-
                     # Addresses
                     async with session.get(f"{self.base_url}/api/addresses") as resp:
                         if resp.status == 200:
