@@ -1,166 +1,156 @@
-# NOEMA RNSGate Lite
-<img width="300" alt="NOEMA RNSGate Lite" src="https://github.com/user-attachments/assets/0f2329a0-5481-416f-90ee-b7ec26bc5267" />
+# NOEMA RNSGate — Home Assistant Integration
 
-[🇷🇺 Русский](#русский) | [🇬🇧 English](#english)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration) [![Version](https://img.shields.io/badge/version-1.1.0-teal)](https://github.com/e2ret/NOEMA-RNSGate-HA) [![HA](https://img.shields.io/badge/HA-2024.1+-blue)](https://www.home-assistant.io)
 
-![RNS](https://img.shields.io/badge/RNS-1.4.2-teal) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-blue)
+Home Assistant integration and configurable Lovelace card for **NOEMA RNSGate** — a Reticulum mesh gateway combining LoRa radio, LXMF messaging, MQTT bridge, I2P and Nomadnet.
 
----
+Works with both **[NOEMA RNSGate Lite](https://github.com/e2ret/NOEMA-RNSGate-Lite)** and **[NOEMA RNSGate FULL](https://github.com/e2ret/NOEMA-RNSGate-FULL)**.
 
-## Русский
-
-**NOEMA RNSGate Lite** — шлюз для сети Reticulum, объединяющий радиосвязь LoRa, LXMF мессенджер, MQTT-интеграцию с Home Assistant, анонимную сеть I2P, Nomadnet и современный веб-интерфейс управления.
-
-> 🔬 Хотите больше? Посмотрите **[NOEMA RNSGate FULL](https://github.com/e2ret/NOEMA-RNSGate-FULL)** — версию с Radio Observatory: реальные данные RSSI/SNR/Noise от RNode, карта сети с хопами, лог RF-пакетов, детекция помех и браузерный терминал.
-
-### Возможности
-- Reticulum Mesh (TCP/IP + LoRa через RNode)
-- LXMF Bridge → MQTT → Home Assistant
-- Встроенный P2P чат (LXMF) с уведомлениями и вложениями
-- Access Control: whitelist LXMF-адресов и rate limiting против спама
-- Telegram уведомления при входящих сообщениях
-- Анонимная сеть I2P (соединение шлюзов без публичного IP)
-- Nomadnet Node + редактор страниц + IRC-чат
-- rBrowser — встроенный Nomadnet браузер
-- Современный веб-дашборд (светлая/тёмная тема): мониторинг, управление сервисами, редактор конфигов без SSH
-- Backup & Restore всех идентификаторов и данных
-- Обновление из GitHub в один клик прямо из дашборда
-
-### ⚠️ Важно
-Проект создан в личных целях и распространяется **как есть**, без гарантий работоспособности. Требуется понимание основ: Linux, TCP/IP, MQTT, базовое администрирование.
-
-### Установка
-Требования: Debian/Ubuntu, Python 3.10+, root.
-```bash
-git clone https://github.com/e2ret/NOEMA-RNSGate-Lite.git && cd NOEMA-RNSGate-Lite && sudo bash install.sh
-```
-Скрипт автоматически устанавливает все зависимости и запускает systemd сервисы. В процессе установки задаются два вопроса:
-
-- **MQTT брокер** — IP/хост, порт, логин и пароль (для LXMF Bridge → Home Assistant). Если брокера пока нет — можно нажать Enter и оставить значения по умолчанию (`localhost`), настроить позже через [[Configs]] в дашборде.
-- **Имя узла Nomadnet** — как ваш шлюз будет отображаться другим узлам сети в анонсах. По умолчанию подставляется `NOEMA RNSGate (hostname)` — этого достаточно, если у вас один шлюз; если планируете несколько, стоит сразу задать понятные имена (например `NOEMA Дом`, `NOEMA Дача`), чтобы отличать их в сети. Позже это тоже можно поменять в дашборде, вкладка [[Nomadnet]].
-
-> **Примечание:** в процессе установки дважды потребуется нажать Enter — для инициализации Nomadnet и настройки cron-задач.
-
-### Первый вход
-
-После установки дашборд доступен в браузере на **порту 8081**:
-
-```
-http://IP_ШЛЮЗА:8081
-```
-
-IP-адрес устройства можно посмотреть в списке клиентов роутера, или через `hostname -I` по SSH на самом шлюзе. По умолчанию авторизация не требуется — дашборд открыт для всех в локальной сети.
-
-### На чём запускать
-
-Проект **не привязан к Orange Pi** — это просто пример устройства, на котором тестировался. Реально нужен любой Linux (Debian/Ubuntu) с Python 3.10+:
-
-- **Одноплатники**: Orange Pi Zero/Zero 2/Zero 3, Raspberry Pi (любая модель с Ubuntu/Debian)
-- **VM/LXC на Proxmox**: любой Debian/Ubuntu контейнер или виртуалка — так же, как автор запускает у себя
-- **Старый ноутбук/мини-ПК**: x86_64 с Ubuntu Server
-- **VPS**: если нужен публичный TCP-узел без домашней сети
-
-Для LoRa нужен RNode — он подключается либо по USB, либо по Wi-Fi (для ESP32-моделей с сетевым интерфейсом). Физический USB-порт нужен только для USB-варианта. Остальной функционал (TCP/Wi-Fi/Ethernet mesh, I2P, MQTT, чат) работает на любой VM без физического доступа к железу.
-
-Минимальные требования: ~256 МБ RAM, ~2 ГБ диска для установки всех компонентов.
-
-### Документация
-**[→ Полная документация в Wiki](https://github.com/e2ret/NOEMA-RNSGate-Lite/wiki)**
-
-### Обсуждение
-[→ Telegram](https://t.me/reticulum_belgorod/70)
-
-### Используемые компоненты
-- [Reticulum (RNS)](https://github.com/markqvist/Reticulum) — Mark Qvist, MIT
-- [LXMF](https://github.com/markqvist/LXMF) — Mark Qvist, MIT
-- [Nomadnet](https://github.com/markqvist/NomadNet) — Mark Qvist, GPL-3.0
-- [lxmfy](https://github.com/lxmfy/lxmfy) — lxmfy, MIT
-- [Flask](https://flask.palletsprojects.com/) — Pallets, BSD
-- [paho-mqtt](https://github.com/eclipse/paho.mqtt.python) — Eclipse, EPL/EDL
-- [rBrowser](https://github.com/fr33n0w/rBrowser) — fr33n0w, MIT
-- [i2pd](https://github.com/PurpleI2P/i2pd) — PurpleI2P, BSD
-
-### Благодарности
-**Mark Qvist** — Reticulum, LXMF, Nomadnet · **fr33n0w** — rBrowser · **PurpleI2P Team** — i2pd
-
-Спасибо всем разработчикам, благодаря которым экосистема Reticulum продолжает развиваться.
+[![NOEMA RNSGate HA](https://github.com/e2ret/NOEMA-RNSGate-HA/raw/main/docs/card.png)](https://github.com/e2ret/NOEMA-RNSGate-HA/blob/main/docs/card.png)
 
 ---
 
-## English
+## Features
 
-**NOEMA RNSGate Lite** — a gateway for the Reticulum network, combining LoRa radio, the LXMF messenger, MQTT integration with Home Assistant, the anonymous I2P network, Nomadnet, and a modern web management interface.
+**Integration (`noema_rnsgate`):**
 
-> 🔬 Want more? Check out **[NOEMA RNSGate FULL](https://github.com/e2ret/NOEMA-RNSGate-FULL)** — the version with Radio Observatory: real RSSI/SNR/Noise data from RNode, network map with hop rings, RF packet log, interference detection and browser terminal.
+- System metrics — CPU, RAM, Disk, Temperature, IP, Uptime
+- Service status — lxmf_bridge, i2pd, nomadnet, rbrowser
+- MQTT broker connectivity
+- LXMF statistics — sent, received, total
+- Gateway addresses — LXMF Bridge, I2P b32, Nomadnet node
+- RNS version
+- **RNode RF telemetry — RSSI, SNR, interface name** *(FULL only)*
+- **RNS nodes heard count** *(FULL only)*
+- Restart buttons for each service
 
-### Features
-- Reticulum Mesh (TCP/IP + LoRa via RNode)
-- LXMF Bridge → MQTT → Home Assistant
-- Built-in P2P chat (LXMF) with notifications and attachments
-- Access Control: LXMF address whitelisting and rate limiting against spam
-- Telegram notifications for incoming messages
-- Anonymous I2P network (connect gateways without a public IP)
-- Nomadnet Node + page editor + IRC-style chat
-- rBrowser — built-in Nomadnet browser
-- Modern web dashboard (light/dark theme): monitoring, service management, config editor without SSH
-- Backup & Restore for all identities and data
-- One-click update from GitHub right in the dashboard
+**Lovelace Card (`noema-rnsgate-card`) v2:**
 
-### ⚠️ Important
-This project was built for personal use and is distributed **as-is**, with no guarantee of functionality. Basic knowledge required: Linux, TCP/IP, MQTT, general system administration.
+- Visual editor — toggle blocks on/off, choose which metrics/services to show
+- Sparkline graphs on metric cards (3h history from HA)
+- Configurable blocks: Header, Metrics, MQTT, LXMF, RNode, Addresses, Services, Buttons, Footer
+- Clickable addresses with copy to clipboard
+- Confirmation dialog before restarting services
+- No manual entity configuration needed
 
-### Installation
-Requirements: Debian/Ubuntu, Python 3.10+, root.
+---
+
+## Requirements
+
+- NOEMA RNSGate Lite or FULL running on your network
+- Home Assistant 2024.1+
+- HACS (for integration installation)
+
+---
+
+## Installation
+
+### Integration via HACS
+
+1. HACS → **Integrations** → ⋮ → **Custom repositories**
+2. Add `https://github.com/e2ret/NOEMA-RNSGate-HA` → Category: **Integration**
+3. Find **NOEMA RNSGate** → Install
+4. Restart Home Assistant
+5. **Settings → Integrations → Add → NOEMA RNSGate**
+
+### Lovelace Card — manual install
+
+Download `www/noema-rnsgate-card.js` and copy to your HA config:
+
 ```bash
-git clone https://github.com/e2ret/NOEMA-RNSGate-Lite.git && cd NOEMA-RNSGate-Lite && sudo bash install.sh
-```
-The script automatically installs all dependencies and starts the systemd services. During installation you'll be asked two things:
-
-- **MQTT broker** — host/IP, port, username, and password (for LXMF Bridge → Home Assistant). If you don't have a broker yet, just press Enter to keep the defaults (`localhost`) and configure it later via [[Configs]] in the dashboard.
-- **Nomadnet node name** — how your gateway will appear to other nodes in the network's announces. Defaults to `NOEMA RNSGate (hostname)` — fine if you're only running one gateway; if you're planning to run several, it's worth picking clear names right away (e.g. `NOEMA Home`, `NOEMA Cabin`) to tell them apart on the network. This can also be changed later in the dashboard, under [[Nomadnet]].
-
-> **Note:** during installation you'll need to press Enter twice — for Nomadnet initialization and cron setup.
-
-### First login
-
-Once installed, the dashboard is available in your browser on **port 8081**:
-
-```
-http://GATEWAY_IP:8081
+cp noema-rnsgate-card.js /config/www/
 ```
 
-Find the device's IP in your router's client list, or via `hostname -I` over SSH on the gateway itself. No authentication is required by default — the dashboard is open to anyone on the local network.
+Add resource: **Settings → Dashboards → Resources → Add**
 
-### On what hardware
+- URL: `/local/noema-rnsgate-card.js`
+- Type: JavaScript module
 
-The project **is not tied to Orange Pi** — that's just the device it was tested on. All you really need is any Linux (Debian/Ubuntu) with Python 3.10+:
+---
 
-- **Single-board computers**: Orange Pi Zero/Zero 2/Zero 3, Raspberry Pi (any model with Ubuntu/Debian)
-- **VM/LXC on Proxmox**: any Debian/Ubuntu container or VM — this is how the author runs it
-- **Old laptop / mini-PC**: x86_64 with Ubuntu Server
-- **VPS**: if you need a public TCP node without a home network
+## Integration Configuration
 
-RNode connects either via USB or Wi-Fi (for ESP32-based models with a network interface) — a physical USB port is only required for the USB variant. Everything else (TCP/Wi-Fi/Ethernet mesh, I2P, MQTT, chat) runs on any VM with no physical hardware access at all.
+**Settings → Integrations → Add → NOEMA RNSGate**
 
-Minimum requirements: ~256 MB RAM, ~2 GB disk for a full install.
+| Field | Description                | Default       |
+| ----- | -------------------------- | ------------- |
+| Host  | IP address of your gateway | —             |
+| Port  | Dashboard port             | 8081          |
+| Name  | Device name in HA          | NOEMA RNSGate |
 
-### Documentation
-**[→ Full documentation in the Wiki](https://github.com/e2ret/NOEMA-RNSGate-Lite/wiki)**
+---
 
-### Discussion
-[→ Telegram](https://t.me/reticulum_belgorod/70)
+## Lovelace Card Usage
 
-### Components used
-- [Reticulum (RNS)](https://github.com/markqvist/Reticulum) — Mark Qvist, MIT
-- [LXMF](https://github.com/markqvist/LXMF) — Mark Qvist, MIT
-- [Nomadnet](https://github.com/markqvist/NomadNet) — Mark Qvist, GPL-3.0
-- [lxmfy](https://github.com/lxmfy/lxmfy) — lxmfy, MIT
-- [Flask](https://flask.palletsprojects.com/) — Pallets, BSD
-- [paho-mqtt](https://github.com/eclipse/paho.mqtt.python) — Eclipse, EPL/EDL
-- [rBrowser](https://github.com/fr33n0w/rBrowser) — fr33n0w, MIT
-- [i2pd](https://github.com/PurpleI2P/i2pd) — PurpleI2P, BSD
+```yaml
+type: custom:noema-rnsgate-card
+title: NOEMA RNSGate
+prefix: noema_rnsgate_noema
+show_rnode: true
+show_addresses: true
+metrics:
+  - cpu_usage
+  - ram_usage
+  - disk_usage
+  - cpu_temperature
+services:
+  - noema_lxmf_bridge
+  - i2pd
+  - nomadnet
+  - rbrowser
+```
 
-### Acknowledgements
-**Mark Qvist** — Reticulum, LXMF, Nomadnet · **fr33n0w** — rBrowser · **PurpleI2P Team** — i2pd
+The `prefix` is the common part of your entity IDs. Find it in Developer Tools → States by searching `noema`.
 
-Thanks to all the developers who keep the Reticulum ecosystem growing.
+---
+
+## Entities
+
+### Sensors
+
+| Entity | Description |
+|---|---|
+| `sensor.*_cpu_usage` | CPU usage % |
+| `sensor.*_ram_usage` | RAM usage % |
+| `sensor.*_disk_usage` | Disk usage % |
+| `sensor.*_cpu_temperature` | CPU temperature °C |
+| `sensor.*_uptime` | System uptime |
+| `sensor.*_ip_address` | Gateway IP address |
+| `sensor.*_rns_version` | Installed RNS version |
+| `sensor.*_lxmf_sent` | LXMF messages sent |
+| `sensor.*_lxmf_received` | LXMF messages received |
+| `sensor.*_lxmf_total` | LXMF messages total |
+| `sensor.*_lxmf_bridge_address` | LXMF Bridge address |
+| `sensor.*_i2p_address_b32` | I2P b32 address |
+| `sensor.*_nomadnet_node_address` | Nomadnet node address |
+| `sensor.*_rnode_rssi` | RNode RSSI dBm *(FULL)* |
+| `sensor.*_rnode_snr` | RNode SNR dB *(FULL)* |
+| `sensor.*_rnode_interface` | RNode interface name *(FULL)* |
+| `sensor.*_rns_nodes_heard` | RNS nodes heard *(FULL)* |
+
+### Binary Sensors
+
+| Entity | Description |
+|---|---|
+| `binary_sensor.*_mqtt_broker` | MQTT broker connectivity |
+| `binary_sensor.*_noema_lxmf_bridge` | LXMF bridge status |
+| `binary_sensor.*_i2pd` | i2pd service status |
+| `binary_sensor.*_nomadnet` | Nomadnet service status |
+| `binary_sensor.*_rbrowser` | rBrowser service status |
+
+### Buttons
+
+| Entity | Description |
+|---|---|
+| `button.*_restart_noema_lxmf_bridge` | Restart LXMF bridge |
+| `button.*_restart_i2pd` | Restart i2pd |
+| `button.*_restart_nomadnet` | Restart Nomadnet |
+| `button.*_restart_rbrowser` | Restart rBrowser |
+| `button.*_restart_dashboard` | Restart dashboard |
+| `button.*_restart_all` | Restart all services |
+
+---
+
+## License
+
+MIT
