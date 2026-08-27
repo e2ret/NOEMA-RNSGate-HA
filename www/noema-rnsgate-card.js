@@ -1,553 +1,454 @@
-/* ============================================================
- * NOEMA RNSGate Card — v1.0.0
- * Standalone Lovelace card for NOEMA RNSGate Lite integration.
- * No dependencies. Auto-discovers entities by integration prefix.
- *
- * https://github.com/e2ret/NOEMA-RNSGate-Lite
- * ============================================================ */
-
-const NRG_VERSION = "1.0.0";
-
-console.info(
-  `%c NOEMA-RNSGATE-CARD %c v${NRG_VERSION} `,
-  "color: white; background: #14b8a6; font-weight: 700;",
-  "color: #14b8a6; background: white; font-weight: 700;"
-);
+/**
+ * NOEMA RNSGate Card — v2.0
+ * Configurable blocks with visual editor.
+ */
 
 const NRG_SERVICES = [
-  { key: "rnsd",             label: "rnsd" },
+  { key: "rnsd",              label: "rnsd" },
   { key: "noema_lxmf_bridge", label: "LXMF Bridge" },
-  { key: "i2pd",             label: "i2pd" },
-  { key: "nomadnet",         label: "Nomadnet" },
-  { key: "rbrowser",         label: "rBrowser" },
+  { key: "i2pd",              label: "i2pd" },
+  { key: "nomadnet",          label: "Nomadnet" },
+  { key: "rbrowser",          label: "rBrowser" },
 ];
 
-class NoemaRnsgateCard extends HTMLElement {
-  static getConfigElement() {
-    return document.createElement("noema-rnsgate-card-editor");
-  }
+const NRG_METRICS = [
+  { key: "cpu_usage",        label: "CPU",  unit: "%",  icon: "💻" },
+  { key: "ram_usage",        label: "RAM",  unit: "%",  icon: "🧠" },
+  { key: "disk_usage",       label: "DISK", unit: "%",  icon: "💾" },
+  { key: "cpu_temperature",  label: "TEMP", unit: "°C", icon: "🌡️" },
+];
 
-  static getStubConfig() {
-    return { title: "NOEMA RNSGate Lite", prefix: "noema_rnsgate_noema" };
-  }
+const NRG_DEFAULT = {
+  title: "NOEMA RNSGate",
+  prefix: "noema_rnsgate_noema",
+  show_header: true,
+  show_metrics: true,
+  show_mqtt: true,
+  show_lxmf: true,
+  show_rnode: true,
+  show_services: true,
+  show_buttons: true,
+  show_footer: true,
+  show_addresses: false,
+  metrics: ["cpu_usage","ram_usage","disk_usage","cpu_temperature"],
+  services: ["rnsd","noema_lxmf_bridge","i2pd","nomadnet","rbrowser"],
+  buttons: ["rnsd","noema_lxmf_bridge","i2pd","nomadnet","rbrowser"],
+};
+
+class NoemaRnsgateCard extends HTMLElement {
+  static getConfigElement() { return document.createElement("noema-rnsgate-card-editor"); }
+  static getStubConfig()    { return NRG_DEFAULT; }
 
   setConfig(config) {
-    this._config = {
-      title: "NOEMA RNSGate Lite",
-      prefix: "noema_rnsgate_noema",
-      ...config,
-    };
-    this._built = false;
+    this._config = { ...NRG_DEFAULT, ...config };
+    if (!this._built) { this._build(); this._built = true; }
+    this._update();
   }
 
   set hass(hass) {
     this._hass = hass;
-    if (!this._built) this._build();
     this._update();
+    // Fetch history periodically
+    if (!this._histTimer) {
+      this._fetchHistory();
+      this._histTimer = setInterval(() => this._fetchHistory(), 60000);
+    }
   }
 
   _e(key) {
-    const id = `sensor.${this._config.prefix}_${key}`;
-    const st = this._hass.states[id];
-    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
-    return st.state;
+    if (!this._hass || !this._config.prefix) return null;
+    const s = this._hass.states[`sensor.${this._config.prefix}_${key}`];
+    return s ? s.state : null;
   }
 
   _b(key) {
-    const id = `binary_sensor.${this._config.prefix}_${key}`;
-    const st = this._hass.states[id];
-    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
-    return st.state === "on";
+    if (!this._hass || !this._config.prefix) return null;
+    const s = this._hass.states[`binary_sensor.${this._config.prefix}_${key}`];
+    return s ? s.state === "on" : null;
   }
 
-  _callButton(key) {
-    const id = `button.${this._config.prefix}_restart_${key}`;
-    this._hass.callService("button", "press", { entity_id: id });
+  _color(pct, warn=70, crit=90) {
+    return pct >= crit ? "#ef4444" : pct >= warn ? "#f59e0b" : "#10b981";
   }
 
   _build() {
-    this._built = true;
-    const c = this._config;
-
     this.innerHTML = `
-      <ha-card>
-        <style>
-          ha-card {
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            font-family: Impact, 'Arial Narrow Bold', sans-serif;
-          }
-          .nrg-wrap {
-            padding: 14px 16px;
-            color: var(--primary-text-color, #fff);
-          }
-          .nrg-title {
-            text-align: center;
-            font-size: 22px;
-            letter-spacing: 1px;
-            color: var(--primary-color, #14b8a6);
-            margin-bottom: 10px;
-          }
+<ha-card>
+<style>
+  :host { display: block; }
+  ha-card { padding: 16px; font-family: var(--primary-font-family, sans-serif); }
+  .nrg-title { text-align:center; font-size:1.1em; font-weight:700; color:var(--primary-color); margin-bottom:6px; }
+  .nrg-info  { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .nrg-badge { background:var(--secondary-background-color); border-radius:20px; padding:3px 10px; font-size:.75em; display:flex; gap:5px; }
+  .nrg-badge b { color:var(--primary-text-color); }
+  .nrg-metrics { display:grid; gap:8px; margin-bottom:10px; }
+  .nrg-metric { background:var(--secondary-background-color); border-radius:12px; padding:10px 14px; text-align:center; }
+  .nrg-metric-val { font-size:1.4em; font-weight:700; }
+  .nrg-metric-bar { height:3px; border-radius:2px; background:var(--divider-color); margin:4px 0 2px; }
+  .nrg-metric-fill { height:100%; border-radius:2px; transition:width .4s; }
+  .nrg-metric-lbl { font-size:.7em; color:var(--secondary-text-color); }
+  .nrg-metric { position:relative; overflow:hidden; }
+  .nrg-metric svg { position:absolute; bottom:0; left:0; width:100%; height:50%; opacity:0.25; pointer-events:none; }
+  .nrg-mqtt { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--secondary-background-color); border-radius:10px; margin-bottom:10px; font-size:.85em; }
+  .nrg-dot  { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .nrg-block { background:var(--secondary-background-color); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+  .nrg-block-title { font-size:.7em; color:var(--secondary-text-color); letter-spacing:.06em; text-transform:uppercase; margin-bottom:6px; }
+  .nrg-addr { font-family:monospace; font-size:.78em; color:var(--primary-color); word-break:break-all; margin-bottom:6px; }
+  .nrg-addr-copy { cursor:pointer; user-select:none; transition:opacity .15s; }
+  .nrg-addr-copy:hover { opacity:.7; }
+  .nrg-addr-copy:active { opacity:.4; }
+  .nrg-stats { display:flex; gap:12px; flex-wrap:wrap; font-size:.8em; color:var(--secondary-text-color); }
+  .nrg-stats b { color:var(--primary-text-color); }
+  .nrg-svcs { display:grid; gap:8px; margin-bottom:10px; }
+  .nrg-svc  { background:var(--secondary-background-color); border-radius:10px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
+  .nrg-svc-name { font-size:.8em; font-weight:600; }
+  .nrg-svc-pill { font-size:.7em; font-weight:700; padding:2px 9px; border-radius:20px; }
+  .nrg-svc-pill.on  { background:#10b98122; color:#10b981; }
+  .nrg-svc-pill.off { background:#ef444422; color:#ef4444; }
+  .nrg-svc-pill.na  { background:var(--divider-color); color:var(--secondary-text-color); }
+  .nrg-btns { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .nrg-btn  { flex:1; min-width:80px; padding:6px 4px; border:1px solid var(--divider-color); border-radius:8px; background:var(--secondary-background-color); color:var(--primary-text-color); font-size:.75em; cursor:pointer; }
+  .nrg-btn.danger { border-color:#ef4444; color:#ef4444; }
+  .nrg-footer { font-size:.72em; color:var(--secondary-text-color); text-align:center; padding-top:4px; }
+  .nrg-update { color:#f59e0b; margin-left:8px; }
+</style>
+<div id="nrg-header" class="nrg-title"></div>
+<div id="nrg-info" class="nrg-info"></div>
+<div id="nrg-metrics" class="nrg-metrics"></div>
+<div id="nrg-mqtt" class="nrg-mqtt" style="display:none">
+  <div class="nrg-dot" id="nrg-mqtt-dot"></div>
+  <span id="nrg-mqtt-txt">MQTT Broker</span>
+</div>
+<div id="nrg-lxmf" class="nrg-block" style="display:none">
+  <div class="nrg-block-title">LXMF Bridge</div>
+  <div class="nrg-addr nrg-addr-copy" id="nrg-lxmf-addr" title="Click to copy">—</div>
+  <div class="nrg-stats">
+    <span>Sent <b id="nrg-lxmf-sent">0</b></span>
+    <span>Received <b id="nrg-lxmf-recv">0</b></span>
+    <span>Total <b id="nrg-lxmf-total">0</b></span>
+  </div>
+</div>
+<div id="nrg-rnode" class="nrg-block" style="display:none">
+  <div class="nrg-block-title">RNode · <span id="nrg-rnode-iface" style="opacity:.7">—</span></div>
+  <div class="nrg-stats">
+    <span>RSSI <b id="nrg-rnode-rssi">—</b> dBm</span>
+    <span>SNR <b id="nrg-rnode-snr">—</b> dB</span>
+    <span>Nodes <b id="nrg-nodes-total">—</b></span>
+  </div>
+</div>
+<div id="nrg-addresses" class="nrg-block" style="display:none">
+  <div class="nrg-block-title">Addresses</div>
+  <div style="font-size:.72em;color:var(--secondary-text-color);margin-bottom:2px">I2P (b32)</div>
+  <div class="nrg-addr nrg-addr-copy" id="nrg-i2p-addr" title="Click to copy">—</div>
+  <div style="font-size:.72em;color:var(--secondary-text-color);margin-bottom:2px">Nomadnet node</div>
+  <div class="nrg-addr nrg-addr-copy" id="nrg-nn-addr" title="Click to copy">—</div>
+</div>
+<div id="nrg-svcs" class="nrg-svcs"></div>
+<div id="nrg-btns" class="nrg-btns"></div>
+<div id="nrg-footer" class="nrg-footer"></div>
+</ha-card>`;
 
-          /* Info pills */
-          .nrg-pills {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-          }
-          .nrg-pill {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 13px;
-            font-family: sans-serif;
-          }
-          .nrg-pill-label {
-            opacity: .6;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: .5px;
-          }
-          .nrg-pill-val {
-            font-weight: 600;
-          }
-
-          /* Gauges */
-          .nrg-gauges {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
-          }
-          @media (max-width: 360px) {
-            .nrg-gauges { grid-template-columns: repeat(2, 1fr); }
-          }
-          .nrg-gauge {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 12px;
-            padding: 10px 6px 8px;
-            text-align: center;
-          }
-          .nrg-gauge-val {
-            font-size: 22px;
-            line-height: 1;
-            margin-bottom: 2px;
-          }
-          .nrg-gauge-bar {
-            height: 4px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.10);
-            margin: 4px 4px 4px;
-            overflow: hidden;
-          }
-          .nrg-gauge-fill {
-            height: 100%;
-            border-radius: 2px;
-            transition: width .6s ease, background .6s ease;
-          }
-          .nrg-gauge-name {
-            font-size: 11px;
-            font-family: sans-serif;
-            opacity: .6;
-            letter-spacing: .5px;
-            text-transform: uppercase;
-          }
-
-          /* LXMF section */
-          .nrg-lxmf {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.09);
-            border-radius: 12px;
-            padding: 10px 14px;
-            margin-bottom: 10px;
-          }
-          .nrg-lxmf-title {
-            font-size: 12px;
-            font-family: sans-serif;
-            text-transform: uppercase;
-            letter-spacing: .7px;
-            opacity: .5;
-            margin-bottom: 6px;
-          }
-          .nrg-lxmf-addr {
-            font-family: monospace;
-            font-size: 12px;
-            color: #14b8a6;
-            word-break: break-all;
-            margin-bottom: 6px;
-          }
-          .nrg-lxmf-stats {
-            display: flex;
-            gap: 16px;
-          }
-          .nrg-lxmf-stat {
-            font-size: 13px;
-            font-family: sans-serif;
-          }
-          .nrg-lxmf-stat span {
-            opacity: .5;
-            font-size: 11px;
-          }
-
-          /* Services grid */
-          .nrg-services {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 10px;
-          }
-          .nrg-svc:last-child:nth-child(odd) {
-            grid-column: 1 / -1;
-          }
-          .nrg-svc {
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.15);
-          }
-          .nrg-svc-name {
-            font-size: 13px;
-            text-align: center;
-            padding: 4px 8px 2px;
-            opacity: .8;
-            color: var(--primary-color, #14b8a6);
-          }
-          .nrg-svc-status {
-            font-size: 18px;
-            text-align: center;
-            padding: 6px 8px;
-            color: white;
-            font-weight: 700;
-            transition: background .4s ease;
-          }
-          .nrg-svc-status.on  { background: #0A6847; }
-          .nrg-svc-status.off { background: #e0483e; animation: nrg-blink 2s ease infinite; }
-          .nrg-svc-status.na  { background: #444; }
-          @keyframes nrg-blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-          }
-
-          /* MQTT pill */
-          .nrg-mqtt {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 10px;
-            padding: 8px 14px;
-            margin-bottom: 10px;
-            font-family: sans-serif;
-            font-size: 13px;
-          }
-          .nrg-mqtt-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-          }
-          .nrg-mqtt-dot.on  { background: #4fc95b; box-shadow: 0 0 6px #4fc95b; }
-          .nrg-mqtt-dot.off { background: #e0483e; }
-
-          /* Buttons */
-          .nrg-btns {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            justify-content: center;
-          }
-          .nrg-btn {
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 8px;
-            color: var(--primary-text-color, #fff);
-            font-family: Impact, sans-serif;
-            font-size: 13px;
-            padding: 6px 12px;
-            cursor: pointer;
-            letter-spacing: .5px;
-            text-transform: uppercase;
-            transition: background .2s;
-          }
-          .nrg-btn:hover { background: rgba(255,255,255,0.14); }
-          .nrg-btn:active { background: rgba(20,184,166,0.3); }
-          .nrg-btn.danger { border-color: rgba(224,72,62,0.4); color: #e0483e; }
-          .nrg-btn.primary { border-color: rgba(20,184,166,0.4); color: #14b8a6; }
-
-          /* RNS version */
-          .nrg-rns {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-family: sans-serif;
-            font-size: 12px;
-            opacity: .5;
-            padding: 6px 2px 0;
-          }
-          .nrg-update {
-            color: #f0a92e;
-            opacity: 1;
-            font-weight: 600;
-          }
-        </style>
-        <div class="nrg-wrap">
-          <div class="nrg-title">${c.title}</div>
-
-          <!-- Pills: uptime, version, IP -->
-          <div class="nrg-pills">
-            <div class="nrg-pill">
-              <span class="nrg-pill-label">Uptime</span>
-              <span class="nrg-pill-val" id="nrg-uptime">—</span>
-            </div>
-            <div class="nrg-pill">
-              <span class="nrg-pill-label">RNS</span>
-              <span class="nrg-pill-val" id="nrg-rns-ver">—</span>
-            </div>
-            <div class="nrg-pill">
-              <span class="nrg-pill-label">IP</span>
-              <span class="nrg-pill-val" id="nrg-ip">—</span>
-            </div>
-          </div>
-
-          <!-- Gauges: CPU, DISK, RAM, TEMP -->
-          <div class="nrg-gauges">
-            <div class="nrg-gauge">
-              <div class="nrg-gauge-val" id="nrg-cpu-val">—</div>
-              <div class="nrg-gauge-bar"><div class="nrg-gauge-fill" id="nrg-cpu-bar"></div></div>
-              <div class="nrg-gauge-name">CPU</div>
-            </div>
-            <div class="nrg-gauge">
-              <div class="nrg-gauge-val" id="nrg-disk-val">—</div>
-              <div class="nrg-gauge-bar"><div class="nrg-gauge-fill" id="nrg-disk-bar"></div></div>
-              <div class="nrg-gauge-name">DISK</div>
-            </div>
-            <div class="nrg-gauge">
-              <div class="nrg-gauge-val" id="nrg-ram-val">—</div>
-              <div class="nrg-gauge-bar"><div class="nrg-gauge-fill" id="nrg-ram-bar"></div></div>
-              <div class="nrg-gauge-name">RAM</div>
-            </div>
-            <div class="nrg-gauge">
-              <div class="nrg-gauge-val" id="nrg-temp-val">—</div>
-              <div class="nrg-gauge-bar"><div class="nrg-gauge-fill" id="nrg-temp-bar"></div></div>
-              <div class="nrg-gauge-name">TEMP</div>
-            </div>
-          </div>
-
-          <!-- MQTT status -->
-          <div class="nrg-mqtt">
-            <div>
-              <span class="nrg-mqtt-dot" id="nrg-mqtt-dot"></span>
-              <span id="nrg-mqtt-label">MQTT Broker</span>
-            </div>
-            <span id="nrg-mqtt-host" style="opacity:.5;font-size:12px"></span>
-          </div>
-
-          <!-- LXMF info -->
-          <div class="nrg-lxmf">
-            <div class="nrg-lxmf-title">LXMF Bridge</div>
-            <div class="nrg-lxmf-addr" id="nrg-lxmf-addr">—</div>
-            <div class="nrg-lxmf-stats">
-              <div class="nrg-lxmf-stat"><span>Sent </span><span id="nrg-lxmf-sent">0</span></div>
-              <div class="nrg-lxmf-stat"><span>Received </span><span id="nrg-lxmf-recv">0</span></div>
-              <div class="nrg-lxmf-stat"><span>Total </span><span id="nrg-lxmf-total">0</span></div>
-            </div>
-          </div>
-
-          <!-- Services -->
-          <div class="nrg-services" id="nrg-services"></div>
-
-          <!-- Control buttons -->
-          <div class="nrg-btns">
-            ${NRG_SERVICES.map(s => `
-              <button class="nrg-btn" data-svc="${s.key}" title="Restart ${s.label}">↺ ${s.label}</button>
-            `).join("")}
-            <button class="nrg-btn danger" data-svc="all">↺ ALL</button>
-          </div>
-
-          <!-- RNS version footer -->
-          <div class="nrg-rns">
-            <span>RNS <span id="nrg-rns-cur">—</span> / latest <span id="nrg-rns-latest">—</span></span>
-            <span class="nrg-update" id="nrg-rns-update" style="display:none">↑ Update available</span>
-          </div>
-        </div>
-      </ha-card>
-    `;
-
-    // Build services grid
-    const svcGrid = this.querySelector("#nrg-services");
-    svcGrid.innerHTML = NRG_SERVICES.map(s => `
-      <div class="nrg-svc" id="nrg-svc-${s.key}">
-        <div class="nrg-svc-name">${s.label}</div>
-        <div class="nrg-svc-status na" id="nrg-svc-st-${s.key}">—</div>
-      </div>
-    `).join("");
-
-    // Button handlers
-    this.querySelectorAll(".nrg-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const svc = btn.dataset.svc;
-        const label = svc === "all" ? "ALL services" : svc;
-        if (!confirm(`Restart ${label}?`)) return;
-        if (svc === "all") {
-          this._hass.callService("button", "press", {
-            entity_id: `button.${this._config.prefix}_restart_all`
-          });
-        } else {
-          this._hass.callService("button", "press", {
-            entity_id: `button.${this._config.prefix}_restart_${svc}`
-          });
-        }
+    this.addEventListener("click", e => {
+      const el = e.target.closest(".nrg-addr-copy");
+      if (!el || el.textContent === "—") return;
+      navigator.clipboard.writeText(el.textContent).then(() => {
+        const orig = el.textContent;
+        el.textContent = "✓ Copied!";
+        setTimeout(() => el.textContent = orig, 1500);
       });
+    });
+
+    this.querySelector("#nrg-btns").addEventListener("click", e => {
+      const btn = e.target.closest("[data-svc]");
+      if (!btn || !this._hass) return;
+      const svc = btn.dataset.svc;
+      const label = svc === "all" ? "ALL services" : svc;
+      if (!confirm(`Restart ${label}?`)) return;
+      const eid = svc === "all"
+        ? `button.${this._config.prefix}_restart_all`
+        : `button.${this._config.prefix}_restart_${svc}`;
+      this._hass.callService("button", "press", { entity_id: eid });
     });
   }
 
-  _color(val, max, heat = false) {
-    const t = Math.min(1, Math.max(0, val / max));
-    if (heat) {
-      // green → yellow → red
-      if (t < 0.5) return `rgb(${Math.round(t*2*240)},201,91)`;
-      return `rgb(224,${Math.round((1-t)*2*180)},62)`;
-    }
-    // blue → green → yellow → red
-    if (t < 0.6) return "#14b8a6";
-    if (t < 0.8) return "#f0a92e";
-    return "#e0483e";
+  _sparkline(values, color) {
+    const w = 100, h = 40;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const pts = values.map((v, i) => {
+      const x = (i / (values.length - 1)) * w;
+      const y = h - ((v - min) / range) * h * 0.9;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
   }
 
-  _setGauge(valId, barId, val, unit, max, heat = false) {
-    const el = this.querySelector(`#${valId}`);
-    const bar = this.querySelector(`#${barId}`);
-    if (!el || !bar) return;
-    if (val === null) { el.textContent = "—"; bar.style.width = "0%"; return; }
-    el.textContent = val + (unit || "");
-    const pct = Math.min(100, Math.max(0, (val / max) * 100));
-    const color = this._color(val, max, heat);
-    bar.style.width = pct + "%";
-    bar.style.background = color;
-    el.style.color = color;
+  async _fetchHistory() {
+    if (!this._hass || !this._config.prefix) return;
+    const end = new Date();
+    const start = new Date(end - 3 * 60 * 60 * 1000); // 3 hours
+    const keys = this._config.metrics || [];
+    const entityIds = keys.map(k => `sensor.${this._config.prefix}_${k}`).join(",");
+    try {
+      const resp = await this._hass.callApi("GET",
+        `history/period/${start.toISOString()}?filter_entity_id=${entityIds}&end_time=${end.toISOString()}&minimal_response=true&no_attributes=true`
+      );
+      this._history = {};
+      if (Array.isArray(resp)) {
+        resp.forEach(entityHistory => {
+          if (!entityHistory.length) return;
+          const eid = entityHistory[0].entity_id;
+          const key = keys.find(k => eid.endsWith("_" + k));
+          if (!key) return;
+          this._history[key] = entityHistory
+            .map(s => parseFloat(s.state))
+            .filter(v => !isNaN(v));
+        });
+      }
+      this._update();
+    } catch(e) { /* silent */ }
   }
 
   _update() {
-    if (!this._hass || !this._built) return;
+    if (!this._built || !this._config) return;
+    const cfg = this._config;
 
-    // Pills
-    const uptime = this.querySelector("#nrg-uptime");
-    const rnsVer = this.querySelector("#nrg-rns-ver");
-    const ip = this.querySelector("#nrg-ip");
-    if (uptime) uptime.textContent = this._e("uptime") || "—";
-    if (rnsVer) rnsVer.textContent = this._e("rns_version") || "—";
-    if (ip) ip.textContent = this._e("ip_address") || "—";
+    // Header
+    const hdr = this.querySelector("#nrg-header");
+    if (hdr) {
+      hdr.style.display = cfg.show_header ? "" : "none";
+      hdr.textContent = cfg.title || "NOEMA RNSGate";
+    }
 
-    // Gauges
-    const cpu = parseFloat(this._e("cpu_usage"));
-    const disk = parseFloat(this._e("disk_usage"));
-    const ram = parseFloat(this._e("ram_usage"));
-    const temp = parseFloat(this._e("cpu_temperature"));
-    this._setGauge("nrg-cpu-val", "nrg-cpu-bar", isNaN(cpu) ? null : cpu, "%", 100);
-    this._setGauge("nrg-disk-val", "nrg-disk-bar", isNaN(disk) ? null : disk, "%", 100);
-    this._setGauge("nrg-ram-val", "nrg-ram-bar", isNaN(ram) ? null : ram, "%", 100);
-    this._setGauge("nrg-temp-val", "nrg-temp-bar", isNaN(temp) ? null : temp, "°C", 90, true);
+    // Info badges
+    const info = this.querySelector("#nrg-info");
+    if (info) {
+      info.style.display = cfg.show_header ? "" : "none";
+      info.innerHTML = `
+        <div class="nrg-badge"><span>UPTIME</span><b>${this._e("uptime") || "—"}</b></div>
+        <div class="nrg-badge"><span>RNS</span><b>${this._e("rns_version") || "—"}</b></div>
+        <div class="nrg-badge"><span>IP</span><b>${this._e("ip_address") || "—"}</b></div>
+      `;
+    }
+
+    // Metrics
+    const metricsEl = this.querySelector("#nrg-metrics");
+    if (metricsEl) {
+      metricsEl.style.display = cfg.show_metrics ? "" : "none";
+      if (cfg.show_metrics) {
+        const cols = Math.min(cfg.metrics.length, 4);
+        metricsEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        metricsEl.innerHTML = (cfg.metrics || []).map(mkey => {
+          const m = NRG_METRICS.find(x => x.key === mkey);
+          if (!m) return "";
+          const raw = parseFloat(this._e(m.key));
+          const val = isNaN(raw) ? "—" : (m.unit === "°C" ? Math.round(raw) : raw);
+          const pct = isNaN(raw) ? 0 : (m.unit === "°C" ? Math.min(raw/120*100,100) : raw);
+          const col = this._color(pct);
+          const hist = this._history ? (this._history[m.key] || []) : [];
+          const sparkSvg = hist.length > 1 ? this._sparkline(hist, col) : "";
+          return `<div class="nrg-metric">
+            ${sparkSvg}
+            <div class="nrg-metric-val" style="color:${col};position:relative;z-index:1">${val}${isNaN(raw)?"":(m.unit)}</div>
+            <div class="nrg-metric-bar" style="position:relative;z-index:1"><div class="nrg-metric-fill" style="width:${pct}%;background:${col}"></div></div>
+            <div class="nrg-metric-lbl" style="position:relative;z-index:1">${m.label}</div>
+          </div>`;
+        }).join("");
+      }
+    }
 
     // MQTT
-    const mqttOn = this._b("mqtt_broker");
-    const mqttDot = this.querySelector("#nrg-mqtt-dot");
-    const mqttLabel = this.querySelector("#nrg-mqtt-label");
-    if (mqttDot) mqttDot.className = "nrg-mqtt-dot " + (mqttOn ? "on" : "off");
-    if (mqttLabel) mqttLabel.textContent = "MQTT Broker — " + (mqttOn ? "OK" : "ERROR");
+    const mqttEl = this.querySelector("#nrg-mqtt");
+    if (mqttEl) {
+      mqttEl.style.display = cfg.show_mqtt ? "flex" : "none";
+      if (cfg.show_mqtt) {
+        const on = this._b("mqtt_broker");
+        const dot = this.querySelector("#nrg-mqtt-dot");
+        const txt = this.querySelector("#nrg-mqtt-txt");
+        if (dot) dot.style.background = on === null ? "var(--divider-color)" : on ? "#10b981" : "#ef4444";
+        if (txt) txt.textContent = `MQTT Broker — ${on === null ? "—" : on ? "OK" : "Offline"}`;
+      }
+    }
 
     // LXMF
-    const addr = this.querySelector("#nrg-lxmf-addr");
-    const sent = this.querySelector("#nrg-lxmf-sent");
-    const recv = this.querySelector("#nrg-lxmf-recv");
-    const total = this.querySelector("#nrg-lxmf-total");
-    if (addr) addr.textContent = this._e("lxmf_bridge_address") || "—";
-    if (sent) sent.textContent = this._e("lxmf_sent") || "0";
-    if (recv) recv.textContent = this._e("lxmf_received") || "0";
-    if (total) total.textContent = this._e("lxmf_total") || "0";
+    const lxmfEl = this.querySelector("#nrg-lxmf");
+    if (lxmfEl) {
+      lxmfEl.style.display = cfg.show_lxmf ? "" : "none";
+      if (cfg.show_lxmf) {
+        const a = this.querySelector("#nrg-lxmf-addr");
+        if (a) a.textContent = this._e("lxmf_bridge_address") || "—";
+        const s = this.querySelector("#nrg-lxmf-sent");
+        const r = this.querySelector("#nrg-lxmf-recv");
+        const t = this.querySelector("#nrg-lxmf-total");
+        if (s) s.textContent = this._e("lxmf_sent") || "0";
+        if (r) r.textContent = this._e("lxmf_received") || "0";
+        if (t) t.textContent = this._e("lxmf_total") || "0";
+      }
+    }
+
+    // RNode
+    const rnodeEl = this.querySelector("#nrg-rnode");
+    if (rnodeEl) {
+      rnodeEl.style.display = cfg.show_rnode ? "" : "none";
+      if (cfg.show_rnode) {
+        const ri = this.querySelector("#nrg-rnode-iface");
+        const rr = this.querySelector("#nrg-rnode-rssi");
+        const rs = this.querySelector("#nrg-rnode-snr");
+        const nt = this.querySelector("#nrg-nodes-total");
+        if (ri) ri.textContent = this._e("rnode_interface") || "—";
+        if (rr) rr.textContent = this._e("rnode_rssi") ?? "—";
+        if (rs) rs.textContent = this._e("rnode_snr") ?? "—";
+        if (nt) nt.textContent = this._e("nodes_total") ?? "—";
+      }
+    }
+
+    // Addresses
+    const addrEl = this.querySelector("#nrg-addresses");
+    if (addrEl) {
+      addrEl.style.display = cfg.show_addresses ? "" : "none";
+      if (cfg.show_addresses) {
+        const i2pEl = this.querySelector("#nrg-i2p-addr");
+        const nnEl  = this.querySelector("#nrg-nn-addr");
+        if (i2pEl) i2pEl.textContent = this._e("i2p_address_b32") || "—";
+        if (nnEl)  nnEl.textContent  = this._e("nomadnet_node_address") || "—";
+      }
+    }
 
     // Services
-    NRG_SERVICES.forEach(s => {
-      const st = this.querySelector(`#nrg-svc-st-${s.key}`);
-      if (!st) return;
-      const on = this._b(s.key);
-      if (on === null) {
-        st.className = "nrg-svc-status na";
-        st.textContent = "—";
-      } else if (on) {
-        st.className = "nrg-svc-status on";
-        st.textContent = "Running";
-      } else {
-        st.className = "nrg-svc-status off";
-        st.textContent = "Stopped";
+    const svcsEl = this.querySelector("#nrg-svcs");
+    if (svcsEl) {
+      svcsEl.style.display = cfg.show_services && cfg.services?.length ? "" : "none";
+      if (cfg.show_services) {
+        const cols = Math.min(cfg.services.length, 2);
+        svcsEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        svcsEl.innerHTML = (cfg.services || []).map(key => {
+          const svc = NRG_SERVICES.find(s => s.key === key);
+          if (!svc) return "";
+          const on = this._b(key);
+          const cls = on === null ? "na" : on ? "on" : "off";
+          const lbl = on === null ? "—" : on ? "Running" : "Stopped";
+          return `<div class="nrg-svc">
+            <span class="nrg-svc-name">${svc.label}</span>
+            <span class="nrg-svc-pill ${cls}">${lbl}</span>
+          </div>`;
+        }).join("");
       }
-    });
+    }
 
-    // RNS version
-    const cur = this.querySelector("#nrg-rns-cur");
-    const latest = this.querySelector("#nrg-rns-latest");
-    const upd = this.querySelector("#nrg-rns-update");
-    if (cur) cur.textContent = this._e("rns_version") || "—";
-    if (latest) latest.textContent = this._e("rns_latest") || "—";
-    const hasUpdate = this._b("rns_update_available");
-    if (upd) upd.style.display = hasUpdate ? "" : "none";
-  }
+    // Buttons
+    const btnsEl = this.querySelector("#nrg-btns");
+    if (btnsEl) {
+      btnsEl.style.display = cfg.show_buttons && cfg.buttons?.length ? "" : "none";
+      if (cfg.show_buttons) {
+        btnsEl.innerHTML = (cfg.buttons || []).map(key => {
+          const svc = NRG_SERVICES.find(s => s.key === key);
+          return `<button class="nrg-btn" data-svc="${key}">↺ ${svc ? svc.label : key}</button>`;
+        }).join("") + `<button class="nrg-btn danger" data-svc="all" style="flex-basis:100%">↺ ALL</button>`;
+      }
+    }
 
-  getCardSize() { return 8; }
-}
-
-customElements.define("noema-rnsgate-card", NoemaRnsgateCard);
-
-// Simple editor
-class NoemaRnsgateCardEditor extends HTMLElement {
-  setConfig(config) { this._config = config; }
-  set hass(hass) { this._hass = hass; }
-
-  connectedCallback() {
-    if (!this.innerHTML) {
-      this.innerHTML = `
-        <div style="padding:16px;font-family:sans-serif">
-          <label style="display:block;margin-bottom:8px">Title<br>
-            <input id="title" value="${this._config?.title || "NOEMA RNSGate Lite"}"
-              style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc;margin-top:4px">
-          </label>
-          <label style="display:block;margin-bottom:8px">Entity prefix<br>
-            <input id="prefix" value="${this._config?.prefix || "noema_rnsgate_noema"}"
-              style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc;margin-top:4px">
-          </label>
-        </div>`;
-      this.querySelectorAll("input").forEach(inp => {
-        inp.addEventListener("change", () => {
-          this.dispatchEvent(new CustomEvent("config-changed", {
-            detail: {
-              config: {
-                ...this._config,
-                title: this.querySelector("#title").value,
-                prefix: this.querySelector("#prefix").value,
-              }
-            },
-            bubbles: true,
-            composed: true,
-          }));
-        });
-      });
+    // Footer
+    const footerEl = this.querySelector("#nrg-footer");
+    if (footerEl) {
+      footerEl.style.display = cfg.show_footer ? "" : "none";
+      if (cfg.show_footer) {
+        footerEl.innerHTML = `RNS ${this._e("rns_version") || "—"}`;
+      }
     }
   }
 }
+
+// ── Visual Editor ──────────────────────────────────────────────────────────────
+class NoemaRnsgateCardEditor extends HTMLElement {
+  setConfig(config) { this._config = { ...NRG_DEFAULT, ...config }; this._build(); }
+
+  _fire(cfg) {
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: cfg }, bubbles: true, composed: true }));
+  }
+
+  _chk(key, val) {
+    this._config = { ...this._config, [key]: val };
+    this._fire(this._config);
+    this._build();
+  }
+
+  _build() {
+    const cfg = this._config;
+    const tog = (key, label) => `
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--divider-color)">
+        <span>${label}</span>
+        <input type="checkbox" ${cfg[key] ? "checked" : ""} data-key="${key}" data-type="bool" style="width:18px;height:18px;cursor:pointer">
+      </label>`;
+
+    const multicheck = (listKey, items) => items.map(it => `
+      <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.85em">
+        <input type="checkbox" ${(cfg[listKey]||[]).includes(it.key) ? "checked" : ""} data-list="${listKey}" data-val="${it.key}" style="width:15px;height:15px;cursor:pointer">
+        ${it.label || it.key}
+      </label>`).join("");
+
+    this.innerHTML = `
+<style>
+  .nrg-ed { padding:12px; font-family:var(--primary-font-family,sans-serif); font-size:.9em; }
+  .nrg-ed input[type=text] { width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--divider-color); border-radius:8px; background:var(--secondary-background-color); color:var(--primary-text-color); margin-top:4px; }
+  .nrg-ed-sec { font-weight:700; font-size:.8em; letter-spacing:.06em; text-transform:uppercase; color:var(--secondary-text-color); margin:14px 0 6px; }
+  .nrg-ed-sub { padding:0 8px; }
+</style>
+<div class="nrg-ed">
+  <div class="nrg-ed-sec">General</div>
+  <label>Title<input type="text" data-key="title" value="${cfg.title||""}"></label>
+  <label style="display:block;margin-top:8px">Entity prefix<input type="text" data-key="prefix" value="${cfg.prefix||""}"></label>
+
+  <div class="nrg-ed-sec">Blocks</div>
+  ${tog("show_header","Header (title + badges)")}
+  ${tog("show_metrics","Metrics (CPU/RAM/DISK/TEMP)")}
+  ${tog("show_mqtt","MQTT status")}
+  ${tog("show_lxmf","LXMF Bridge")}
+  ${tog("show_rnode","RNode (RF + nodes)")}
+  ${tog("show_addresses","Addresses (I2P + Nomadnet)")}
+  ${tog("show_services","Services status")}
+  ${tog("show_buttons","Restart buttons")}
+  ${tog("show_footer","Footer (RNS version)")}
+
+  <div class="nrg-ed-sec">Metrics to show</div>
+  <div class="nrg-ed-sub">${multicheck("metrics", NRG_METRICS)}</div>
+
+  <div class="nrg-ed-sec">Services to show</div>
+  <div class="nrg-ed-sub">${multicheck("services", NRG_SERVICES)}</div>
+
+  <div class="nrg-ed-sec">Restart buttons</div>
+  <div class="nrg-ed-sub">${multicheck("buttons", NRG_SERVICES)}</div>
+</div>`;
+
+    this.querySelectorAll("input[data-key]").forEach(el => {
+      el.addEventListener("change", () => {
+        const key = el.dataset.key;
+        const val = el.dataset.type === "bool" ? el.checked : el.value;
+        this._chk(key, val);
+      });
+    });
+
+    this.querySelectorAll("input[data-list]").forEach(el => {
+      el.addEventListener("change", () => {
+        const listKey = el.dataset.list;
+        const val = el.dataset.val;
+        let arr = [...(this._config[listKey] || [])];
+        if (el.checked) { if (!arr.includes(val)) arr.push(val); }
+        else { arr = arr.filter(x => x !== val); }
+        this._chk(listKey, arr);
+      });
+    });
+  }
+}
+
+customElements.define("noema-rnsgate-card", NoemaRnsgateCard);
 customElements.define("noema-rnsgate-card-editor", NoemaRnsgateCardEditor);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "noema-rnsgate-card",
   name: "NOEMA RNSGate Card",
-  description: "Dashboard card for NOEMA RNSGate Lite gateway",
-  preview: false,
+  description: "Configurable card for NOEMA RNSGate gateway",
 });
